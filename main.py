@@ -18,7 +18,13 @@ class Game:
             self.screen.fill(self.colors["w"])
 
             # The you can draw different shapes and lines or add text to your background stage.
-            pygame.draw.rect(self.screen, self.colors["r"], [55, 200, 100, 70],0)
+            pygame.draw.rect(self.screen, self.colors["r"], [55, 200, 100, 70], 0)
+
+            # draw
+            pygame.display.flip()
+
+            # --- Limit to 60 frames per second
+            self.clock.tick(60)
 
     def quit(self):
         pygame.quit()
