@@ -110,7 +110,7 @@ def main():
             if event.type == pygame.QUIT: #What to do if the close button is pressed
                 pygame.quit() #Stop the game!
                 quit() #Stop the python!
-        OpenGL.GL.glRotatef(1, 1,0,0) #Rotate every frame. The first value is the angle (read: speed) of rotation, values 2-4 give a 3D vector to give a direction to the rotation.
+        OpenGL.GL.glRotatef(1, 1,3,5) #Rotate every frame. The first value is the angle (read: speed) of rotation, values 2-4 give a 3D vector to give a direction to the rotation.
         OpenGL.GL.glClear(OpenGL.GL.GL_COLOR_BUFFER_BIT|OpenGL.GL.GL_DEPTH_BUFFER_BIT) #Make sure it doesn't draw anything where there's not supposed to be anything. Remove it for sticky pixels.
         Cube() #Actually draw the fucking cube. Is defined above.
         pygame.display.flip() #Updates the display with new contents.
