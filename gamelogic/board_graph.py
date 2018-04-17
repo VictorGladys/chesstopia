@@ -18,6 +18,7 @@ class Board:
         self.id = 0
         self.dict = {}
         self.fill_board((), dim)
+        self.neighbours = { 1 : [ 2, 5], 2 : [ 1, 3, 6], 3 : [ 2, 4, 5], 1 : [ 2, 3], 1 : [ 2, 3]}
 
     def __repr__(self):
         return json.dumps(self.dict)
@@ -29,6 +30,7 @@ class Board:
             return
         for i in range(dim[0]):
             self.fill_board((i, *idxs), dim[1:])
+
 
 
 if __name__ == "__main__":
