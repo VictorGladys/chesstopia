@@ -11,7 +11,7 @@ import pygame.locals
 import OpenGL.GLU
 import OpenGL.GL
 
-def Cube():
+def Cube(rotatex, rotatey, dist):
     """Define the basic parts of a 2x2x2 cube"""
     corners= (
         (1, -1, -1),
@@ -48,12 +48,29 @@ def Cube():
         (4,0,3,6)
         )
 
+    colors = [  (1,0,0),
+        (0,1,0),
+        (0,0,1),
+        (1,1,0),
+        (1,0,1),
+        (0,1,1)] #To easily switch colors between drawing faces.
+
     OpenGL.GL.glLineWidth(5.)
     """
     There is about 0 configuration you can do in between glBegin and glEnd.
     If you want to define the line width of your edges, or the culling of your faces... do it before glBegin.
     This also means it is a big PITA to get just one of the edges to be more broad. You'll have to start two instances of GL_LINES.
     """
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_PROJECTION)
+    OpenGL.GL.glPushMatrix()
+    OpenGL.GL.glLoadIdentity()
+    OpenGL.GLU.gluPerspective(45, (800 / 600), 1, 10)
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_MODELVIEW)
+    OpenGL.GL.glPushMatrix()
+    OpenGL.GL.glLoadIdentity()
+    OpenGL.GL.glTranslatef(0.0,0.0, dist) #The cube is drawn around the origin. Move the camera back a little.
+    OpenGL.GL.glRotatef(rotatex, 1, 0, 0)
+    OpenGL.GL.glRotatef(rotatey, 0, 1, 0) #Rotate every frame. The first value is the angle which is rotated (read: rotation speed), values 2-4 give a 3D vector / axis to rotate about.
     OpenGL.GL.glBegin(OpenGL.GL.GL_LINES) #You'll have to define what kind of object you are drawing. Polygons? Quadrilaterals? Lines? They all start their own drawing instance it seems.
     OpenGL.GL.glColor3fv((1,1,1)) #This is an exception! You can define color in between glBegin and glEnd!
     for edge in edges:
@@ -61,15 +78,9 @@ def Cube():
             OpenGL.GL.glVertex3fv(corners[vertex]) #Draws a line (we're in GL_LINES mode) in between the two 3D-tuples that are called in separate instances of this function. e.g. You'll have to call this function at least twice to draw something.
     OpenGL.GL.glEnd()
 
-    colors = [  (1,0,0),
-                (0,1,0),
-                (0,0,1),
-                (1,1,0),
-                (1,0,1),
-                (0,1,1)] #To easily switch colors between drawing faces.
 
-    OpenGL.GL.glEnable(OpenGL.GL.GL_CULL_FACE); #Only draw part of the objects
     OpenGL.GL.glCullFace(OpenGL.GL.GL_FRONT); #Only draw the part that faces the camera.
+    OpenGL.GL.glEnable(OpenGL.GL.GL_CULL_FACE); #Only draw part of the objects
     OpenGL.GL.glBegin(OpenGL.GL.GL_QUADS)
     i=0
     for surface in faces:
@@ -78,9 +89,13 @@ def Cube():
         for vertex in surface:
             OpenGL.GL.glVertex3fv(corners[vertex]) #Will only draw one quadrilateral every 4 times you call this function with a tuple in 3D space.
     OpenGL.GL.glEnd()
+    OpenGL.GL.glPopMatrix()
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_PROJECTION)
+    OpenGL.GL.glPopMatrix()
 
 def main():
     pygame.init()
+    rotatex, rotatey, dist = 0, 0, -5.
     display = (800,600) #Tiniest screen resolution as window size.
     """
     So, what do the next function calls do?
@@ -101,18 +116,66 @@ def main():
                             zFar, anything that is farther than this to the camera won't be drawn, so better take a large value.
     """
     pygame.display.set_mode(display, pygame.locals.DOUBLEBUF|pygame.OPENGL)
-    OpenGL.GLU.gluPerspective(45, (display[0]/display[1]), 1, 10)
+    OpenGL.GLU.gluPerspective(45, (display[0]/display[1]), 1, 20)
 
     OpenGL.GL.glTranslatef(0.0,0.0, -5) #The cube is drawn around the origin. Move the camera back a little.
+
+    # pygame.key.set_repeat(1,10)
+    xspeed, yspeed, radspeed = 0, 0, 0
 
     while True:
         for event in pygame.event.get(): #This is getting the basic listeners.
             if event.type == pygame.QUIT: #What to do if the close button is pressed
                 pygame.quit() #Stop the game!
                 quit() #Stop the python!
-        OpenGL.GL.glRotatef(1, 1,3,5) #Rotate every frame. The first value is the angle (read: speed) of rotation, values 2-4 give a 3D vector to give a direction to the rotation.
+            if (event.type == pygame.MOUSEMOTION) and (event.buttons[0] == 1):
+                print(event)
+                OpenGL.GL.glRotatef(event.rel[0], 0, 1, 0)
+                OpenGL.GL.glRotatef(event.rel[1], 1, 0, 0)
+            if (event.type == pygame.KEYDOWN):
+                if event.key == 115: #s
+                    radspeed += -1
+                if event.key == 119: #w
+                    radspeed += 1
+                if event.key == 273:
+                    xspeed += 1
+                if event.key == 274:
+                    xspeed += -1
+                if event.key == 275:
+                    yspeed += -1
+                if event.key == 276:
+                    yspeed += 1
+                print(event)
+            if (event.type == pygame.KEYUP):
+                if event.key == 115: #s
+                    radspeed += 1
+                if event.key == 119: #w
+                    radspeed += -1
+                if event.key == 273:
+                    xspeed += -1
+                if event.key == 274:
+                    xspeed += 1
+                if event.key == 275:
+                    yspeed += 1
+                if event.key == 276:
+                    yspeed += -1
+        # print(pygame.mouse.get_pressed())
+        rotatex += xspeed
+        rotatey += yspeed
+        dist += 0.03*radspeed
+
+        # print(OpenGL.GL.glGetFloatv())
         OpenGL.GL.glClear(OpenGL.GL.GL_COLOR_BUFFER_BIT|OpenGL.GL.GL_DEPTH_BUFFER_BIT) #Make sure it doesn't draw anything where there's not supposed to be anything. Remove it for sticky pixels.
-        Cube() #Actually draw the fucking cube. Is defined above.
+        Cube(rotatex, rotatey, dist) #Actually draw the fucking cube. Is defined above.
+        font = pygame.font.Font (None, 64)
+        textSurface = font.render("Je moeder", False, (255,255,255,128), (0,0,0,0))
+        textData = pygame.image.tostring(textSurface, "RGBA", True)
+        # print(textData)
+        OpenGL.GL.glEnable(OpenGL.GL.GL_BLEND)
+        OpenGL.GL.glBlendFunc(OpenGL.GL.GL_ONE, OpenGL.GL.GL_SRC_ALPHA)
+        OpenGL.GL.glRasterPos3d(-2.75,-2.0625,0)
+        OpenGL.GL.glDrawPixels(textSurface.get_width(), textSurface.get_height(), OpenGL.GL.GL_RGBA, OpenGL.GL.GL_UNSIGNED_BYTE, textData)
+        OpenGL.GL.glDisable(OpenGL.GL.GL_BLEND)
         pygame.display.flip() #Updates the display with new contents.
         pygame.time.wait(10) #Wait 10 miliseconds per frame for a 100fps.
 
