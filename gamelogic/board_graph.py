@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import pprint
 
 class Enum(set):
     def __getattr__(self, name):
@@ -50,5 +51,5 @@ class Board:
             self.dict[k] = self.dict[k] + neighbors
 
 if __name__ == "__main__":
-    b = Board((4,4), modes.normal)
-    print(b)
+    b = Board((6,6), modes.normal)
+    pprint.pprint(b)
