@@ -1,6 +1,11 @@
 import json
 from operator import itemgetter
-import code
+# for debugging: 'code.interact(local=dict(globals(), **locals()))'
+if __name__ == '__main__':    
+    from pieces import *
+    from player import *
+import code 
+from termcolor import colored
 
 class Enum(set):
     def __getattr__(self, name):
@@ -10,9 +15,17 @@ class Enum(set):
 modes = Enum(["normal", "donut", "cube", "square", "triangle"])
 
 class Board:
-    def __init__(self):
-        pass
-
+    def __init__(self, mode):
+        self.mode = mode
+        self.pieces = {}
+        self.name_to_id = {}
+        self.id_to_name = {}
+        self.edge_neighbors = {}
+        self.vertex_neighbors = {}
+        self.pass_through = {}
+        self.promotion_row = []
+        self.en_passant = {}
+        self.checked_squares = {}
     """
     Size should be given in a tuple of (m_1, ..., m_n)
     Mode should be an enum defined above, such as mode.normal or mode.donut
@@ -24,18 +37,17 @@ class Board:
     """
     @classmethod
     def square_grid(cls, dim):
-        inst = cls()
+        print(dim)
+        edge_rules = [((0, 1), (0, -1)), ((-1, 0), (1, 0))]
+        vertex_rules = [((-1, -1), (1, 1)), ((-1, 1), (1, -1))]
+        
+        inst = cls(modes.square)
         inst.dim = dim
-        inst.mode = modes.square
         inst.nodes = 0
-        inst.pieces = {}
-        inst.name_to_id = {}
-        inst.id_to_name = {}
-        inst.edge_neighbors = {}
-        inst.vertex_neighbors = {}
-        inst.pass_through = {}
+        # code.interact(local=dict(globals(), **locals()))
         inst.fill_board((), dim)
-        inst.add_square_connections()
+        inst.add_coordinate_connections(edge_rules, vertex_rules)
+        inst.promotion_row = [ inst.name_to_id[( x, y )] for y in [0, dim[1]-1 ] for x in range(dim[0]) ]
         return inst
 
     @classmethod
@@ -43,20 +55,45 @@ class Board:
         inst = cls()
         inst.dim = dim
         inst.dict = {}
-        for i in [dim[0] + ceil(i/2) for i in range(dim[1])] + [dim[0]*2-i for i in range(dim[1])]:
+        for i in [dim[0] + math.ceil(i/2) for i in range(dim[1])] + [dim[0]*2-i for i in range(dim[1])]:
             print(i)
             inst.dict.update({ i: [] })
         return inst
 
+    def print_square_basic(self):
+        for y in range(self.dim[1]):
+            string = str(self.dim[1] - 1 - y) + ' '
+            for x in range(self.dim[0]):
+                if self.name_to_id[(x, y)] in self.pieces.keys():
+                    string += self.pieces.get(self.name_to_id[(x, y)]).alias
+                elif (x + y) % 2 == 0:
+                    string += 'X'
+                else:
+                    string += 'O'
+            print(string)
+
     def print_square(self):
-        string = ""
-        j = 0
-        for i in sorted(self.dict, key=itemgetter(0, 1)):
-            if j != i[0]:
-                print(string)
-                string = ""
-            string += "X" if (i[0]+i[1])%2 == 1 else "O"
-        print(string)
+        for y in range(self.dim[1]):
+            print(str(self.dim[1] - 1 - y) + ' ', end = '')
+            for x in range(self.dim[0]):
+                try: 
+                    piece = self.pieces[self.name_to_id[(y, x)]]
+                    alias = piece.alias
+                    piececolor = piece.owner.color
+                except KeyError: 
+                    alias = ' '
+                    piececolor = 'white'
+                if (x + y) % 2 == 0:
+                    print(colored(alias, piececolor, 'on_white'), end = '')
+                else:
+                    print(colored(alias, piececolor), end = '')
+            print('')
+        print('')
+        print('  01234567')
+
+                    
+
+
 
     def __repr__(self):
         return str(self.id_to_name)
@@ -65,41 +102,66 @@ class Board:
         pass
 
     def fill_board(self, idxs, dim):
-        """git clone https://github.com/Wramberg/TerminalView.git $HOME/.config/sublime-text-3/Packages/TerminalView
+        """
         Adds nodes to dict for every coordinate-permutation in a tuple of form (m_1, ..., m_n)
         """
-        if not dim:
-            self.name_node(idxs, self.nodes)
-            self.nodes += 1
-            return
-        for i in range(dim[0]):
-            self.fill_board((i, *idxs), dim[1:])
+        id = 0
+        for x in range(dim[0]):
+            for y in range(dim[1]):
+                self.name_node((x, y), id)
+                id += 1
+        # if not dim:
+        #     self.name_node(idxs, self.nodes)
+        #     self.nodes += 1
+        #     return
+        # for i in range(dim[0]):
+        #     print(dim)
+        #     self.fill_board((i, *idxs), dim[1:])
+        #     # code.interact(local=dict(globals(), **locals()))
 
     def name_node(self, name, id):
         self.name_to_id.update({name: id})
         self.id_to_name.update({id: name})
         self.vertex_neighbors.update({id: []})
         self.edge_neighbors.update({id: []})
-        self.pass_through.update({id: []})
 
-    def add_square_connections(self):
-        code.interact(local=dict(globals(), **locals()))
-        for k in self.name_to_id.keys():
-            neighbors = []
-            for i in range(len(k)):
-                tmp = list(k)
-                tmp[i] += 1
-                if tmp[i] <= len(k) + 1:
-                    neighbors.append(tmp)
-                tmp = list(k)
-                tmp[i] -= 1
-                if tmp[i] >= 0:
-                    neighbors.append(tmp)
-            self.edge_neighbors[k] = self.edge_neighbors[k] + neighbors
+    def checked(self, location, owner):
+        pass
+        # return location in self.id_to_name.keys() and self.board.checked_squares[location].
+
+    def legal(self, location, owner):
+        return location in self.id_to_name.keys() and (self.pieces.get(location) == None or self.pieces[location].owner != owner)
+
+    def empty(self, location):
+        return location in self.id_to_name.keys() and location not in self.pieces.keys()
+
+    def add_coordinate_connections(self, edge_rules, vertex_rules):
+        '''
+        adds id connections based on coordinate transformation tuples
+        '''
+        for k,v in self.name_to_id.items():
+            for pass_through_set in edge_rules:
+                options = [ tuple(map(sum, zip(k, set))) for set in pass_through_set ]
+                allowed_options = []
+                for set in options:
+                    try: allowed_options.append(self.name_to_id[set])
+                    except: pass
+
+                if len(allowed_options) >= 2:
+                    for i in allowed_options:
+                        self.pass_through.update({ ( i , v ) : [ x for x in allowed_options if x != i ] })
+                self.edge_neighbors[v] += allowed_options
+
+# for item in [[item in dict] for item in list]:          
 
 if __name__ == "__main__":
     b = Board.square_grid((4,4))
     print(b)
+    p1 = Player('test', 'red')
+    p2 = Player('test2', 'green')
+    r = Rook(p1, b, 1)
+    r2 = Rook(p2, b, 12)
     b.print_square()
-    c = Board.triangle_hex((4,4))
-    print(c)
+    code.interact(local=dict(globals(), **locals()))
+    # c = Board.triangle_hex((4,4))
+    # print(c)
