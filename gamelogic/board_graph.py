@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 from operator import itemgetter
 # for debugging: 'code.interact(local=dict(globals(), **locals()))'
@@ -6,6 +7,7 @@ if __name__ == '__main__':
     from player import *
 import code 
 from termcolor import colored
+import pprint
 
 class Enum(set):
     def __getattr__(self, name):
